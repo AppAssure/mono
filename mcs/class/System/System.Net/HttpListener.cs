@@ -251,13 +251,26 @@ namespace System.Net {
 
 		public HttpListenerContext GetContext ()
 		{
+			CheckDisposed ();
 			// The prefixes are not checked when using the async interface!?
 			if (prefixes.Count == 0)
 				throw new InvalidOperationException ("Please, call AddPrefix before using this method.");
 
-			ListenerAsyncResult ares = (ListenerAsyncResult) BeginGetContext (null, null);
-			ares.InGet = true;
-			return EndGetContext (ares);
+			if (!listening)
+				throw new InvalidOperationException ("Please, call Start before using this method.");
+
+			while (listening) {
+				lock (ctx_wait_lock) {
+					HttpListenerContext ctx = GetContextFromQueue ();
+					if (ctx != null) {
+						ctx.ParseAuthentication (SelectAuthenticationScheme (ctx));
+						return ctx;
+					}
+				}
+				Thread.Sleep(5);
+			}
+
+			return null;
 		}
 
 		public void Start ()
