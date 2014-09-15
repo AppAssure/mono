@@ -43,7 +43,12 @@ namespace Mono.Unix {
 			Native.Passwd pw;
 			int r = Native.Syscall.getpwnam_r (user, passwd, out pw);
 			if (r != 0 || pw == null)
-				throw new ArgumentException (Locale.GetText ("invalid username"), "user");
+			{
+				var userEntity = Native.Syscall.getpwnam(user);
+				if (userEntity == null)
+					throw new ArgumentException (Locale.GetText ("invalid username"), "user");
+				passwd = userEntity;
+			}
 		}
 
 		[CLSCompliant (false)]
