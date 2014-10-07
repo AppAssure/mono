@@ -95,9 +95,11 @@ namespace System.Net {
 				forward.Complete (context, synch);
 				return;
 			}
-			this.synch = synch;
-			this.context = context;
+
 			lock (locker) {
+				this.synch = synch;
+				this.context = context;
+
 				AuthenticationSchemes schemes = context.Listener.SelectAuthenticationScheme (context);
 				if ((schemes == AuthenticationSchemes.Basic || context.Listener.AuthenticationSchemes == AuthenticationSchemes.Negotiate) && context.Request.Headers ["Authorization"] == null) {
 					context.Response.StatusCode = 401;

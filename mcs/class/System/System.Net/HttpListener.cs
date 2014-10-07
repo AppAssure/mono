@@ -52,12 +52,14 @@ namespace System.Net {
 		ArrayList ctx_queue;  // List<HttpListenerContext> ctx_queue;
 		ArrayList wait_queue; // List<ListenerAsyncResult> wait_queue;
 		Hashtable connections;
+		object queue_locker;
 
 		public HttpListener ()
 		{
 			prefixes = new HttpListenerPrefixCollection (this);
 			registry = new Hashtable ();
 			connections = Hashtable.Synchronized (new Hashtable ());
+			queue_locker = new object ();
 			ctx_queue = new ArrayList ();
 			wait_queue = new ArrayList ();
 			auth_schemes = AuthenticationSchemes.Anonymous;
@@ -175,14 +177,12 @@ namespace System.Net {
 					for (int i = conns.Length - 1; i >= 0; i--)
 						conns [i].Close (true);
 				}
-				lock (ctx_queue) {
+				lock (queue_locker) {
 					var ctxs = (HttpListenerContext []) ctx_queue.ToArray (typeof (HttpListenerContext));
 					ctx_queue.Clear ();
 					for (int i = ctxs.Length - 1; i >= 0; i--)
 						ctxs [i].Connection.Close (true);
-				}
 
-				lock (wait_queue) {
 					Exception exc = new ObjectDisposedException ("listener");
 					foreach (ListenerAsyncResult ares in wait_queue) {
 						ares.Complete (exc);
@@ -201,16 +201,14 @@ namespace System.Net {
 			ListenerAsyncResult ares = new ListenerAsyncResult (callback, state);
 
 			// lock wait_queue early to avoid race conditions
-			lock (wait_queue) {
-				lock (ctx_queue) {
+			lock (queue_locker) {
 					HttpListenerContext ctx = GetContextFromQueue ();
 					if (ctx != null) {
 						ares.Complete (ctx, true);
 						return ares;
 					}
-				}
 
-				wait_queue.Add (ares);
+					wait_queue.Add (ares);
 			}
 
 			return ares;
@@ -229,10 +227,9 @@ namespace System.Net {
 				throw new ArgumentException ("Cannot reuse this IAsyncResult");
 			ares.EndCalled = true;
 
-			if (!ares.IsCompleted)
-				ares.AsyncWaitHandle.WaitOne ();
+			ares.AsyncWaitHandle.WaitOne ();
 
-			lock (wait_queue) {
+			lock (queue_locker) {
 				int idx = wait_queue.IndexOf (ares);
 				if (idx >= 0)
 					wait_queue.RemoveAt (idx);
@@ -261,18 +258,9 @@ namespace System.Net {
 			if (!listening)
 				throw new InvalidOperationException ("Please, call Start before using this method.");
 
-			while (listening) {
-				lock (ctx_queue) {
-					HttpListenerContext ctx = GetContextFromQueue ();
-					if (ctx != null) {
-						ctx.ParseAuthentication (SelectAuthenticationScheme (ctx));
-						return ctx;
-					}
-				}
-				Thread.Sleep(10);
-			}
-
-			return null;
+			ListenerAsyncResult ares = (ListenerAsyncResult) BeginGetContext (null, null);
+			ares.InGet = true;
+			return EndGetContext (ares);
 		}
 
 		public void Start ()
@@ -314,7 +302,7 @@ namespace System.Net {
 				throw new ObjectDisposedException (GetType ().ToString ());
 		}
 
-		// Must be called with a lock on ctx_queue
+		// Must be called with a lock on queue_locker
 		HttpListenerContext GetContextFromQueue ()
 		{
 			if (ctx_queue.Count == 0)
@@ -330,25 +318,23 @@ namespace System.Net {
 			lock (registry)
 				registry [context] = context;
 
-			ListenerAsyncResult ares = null;
-			lock (wait_queue) {
-				if (wait_queue.Count == 0) {
-					lock (ctx_queue)
-						ctx_queue.Add (context);
-				} else {
-					ares = (ListenerAsyncResult) wait_queue [0];
+			lock (queue_locker) {
+				if (wait_queue.Count > 0) {
+					ListenerAsyncResult ares = (ListenerAsyncResult) wait_queue [0];
 					wait_queue.RemoveAt (0);
+					ares.Complete (context);
+				} else if (!ctx_queue.Contains (context)) {
+					ctx_queue.Add (context);
 				}
 			}
-			if (ares != null)
-				ares.Complete (context);
 		}
 
 		internal void UnregisterContext (HttpListenerContext context)
 		{
 			lock (registry)
 				registry.Remove (context);
-			lock (ctx_queue) {
+
+			lock (queue_locker) {
 				int idx = ctx_queue.IndexOf (context);
 				if (idx >= 0)
 					ctx_queue.RemoveAt (idx);
