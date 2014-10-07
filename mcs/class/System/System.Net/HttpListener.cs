@@ -272,7 +272,7 @@ namespace System.Net {
 				Thread.Sleep(10);
 			}
 
-			return null;
+			throw new HttpListenerException (995, "The I/O operation has been aborted because of either a thread exit or an application request");
 		}
 
 		public void Start ()
