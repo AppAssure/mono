@@ -265,7 +265,16 @@ namespace System.Net {
 				lock (ctx_queue) {
 					HttpListenerContext ctx = GetContextFromQueue ();
 					if (ctx != null) {
-						ctx.ParseAuthentication (SelectAuthenticationScheme (ctx));
+						var schemes = SelectAuthenticationScheme (ctx);
+						ctx.ParseAuthentication (schemes);
+
+						if ((schemes == AuthenticationSchemes.Basic || schemes == AuthenticationSchemes.Negotiate) && ctx.Request.Headers ["Authorization"] == null) {
+							ctx.Response.StatusCode = 401;
+							ctx.Response.Headers ["WWW-Authenticate"] = schemes + " realm=\"" + Realm + "\"";
+							ctx.Response.OutputStream.Close ();
+							continue;
+						}
+
 						return ctx;
 					}
 				}
