@@ -270,7 +270,7 @@ namespace System.Net {
 
 						if ((schemes == AuthenticationSchemes.Basic || schemes == AuthenticationSchemes.Negotiate) && ctx.Request.Headers ["Authorization"] == null) {
 							ctx.Response.StatusCode = 401;
-							ctx.Response.Headers ["WWW-Authenticate"] = schemes + " realm=\"" + Realm + "\"";
+							ctx.Response.Headers ["WWW-Authenticate"] = schemes.ToString();
 							ctx.Response.OutputStream.Close ();
 							continue;
 						}
