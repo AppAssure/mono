@@ -195,6 +195,33 @@ namespace System {
 			}
 		}
 
+		public static void ForceInitilalizeFullDriver()
+		{
+			if (Environment.IsRunningOnWindows) 
+			{
+				driver = null;
+				driver = CreateWindowsConsoleDriver ();
+				is_console = true;
+			}
+			else 
+			{
+				string term = Environment.GetEnvironmentVariable ("TERM");
+
+				if (term == "dumb")
+				{
+					is_console = false;
+					driver = null;
+					driver = CreateNullConsoleDriver ();
+				} 
+				else
+				{
+					driver = null;
+					driver = CreateTermInfoDriver (term);
+					is_console = true;
+				}
+			}
+		}
+
 		public static void Beep (int frequency, int duration)
 		{
 			driver.Beep (frequency, duration);
