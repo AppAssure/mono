@@ -261,6 +261,13 @@ namespace System.Net {
 					return;
 				}
 				HttpListener listener = context.Listener;
+
+				if (listener == null) {
+					SendError("No listener found", 400);
+					Close (true);
+					return;
+				}
+
 				if (last_listener != listener) {
 					RemoveConnection ();
 					listener.AddConnection (this);
@@ -268,7 +275,13 @@ namespace System.Net {
 				}
 
 				context_bound = true;
-				listener.RegisterContext (context);
+				try {
+					listener.RegisterContext (context);
+				} catch (Exception e) {
+					SendError(String.Format("Unable to register context: {0}", e.Message), 400);
+					Close(true);
+					return;
+				}
 				return;
 			}
 			stream.BeginRead (buffer, 0, BufferSize, onread_cb, this);

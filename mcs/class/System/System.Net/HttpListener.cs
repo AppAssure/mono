@@ -251,13 +251,35 @@ namespace System.Net {
 
 		public HttpListenerContext GetContext ()
 		{
+			CheckDisposed ();
 			// The prefixes are not checked when using the async interface!?
 			if (prefixes.Count == 0)
 				throw new InvalidOperationException ("Please, call AddPrefix before using this method.");
 
-			ListenerAsyncResult ares = (ListenerAsyncResult) BeginGetContext (null, null);
-			ares.InGet = true;
-			return EndGetContext (ares);
+			if (!listening)
+				throw new InvalidOperationException ("Please, call Start before using this method.");
+
+			while (listening) {
+				lock (ctx_queue) {
+					HttpListenerContext ctx = GetContextFromQueue ();
+					if (ctx != null) {
+						var schemes = SelectAuthenticationScheme (ctx);
+						ctx.ParseAuthentication (schemes);
+
+						if ((schemes == AuthenticationSchemes.Basic || schemes == AuthenticationSchemes.Negotiate) && ctx.Request.Headers ["Authorization"] == null) {
+							ctx.Response.StatusCode = 401;
+							ctx.Response.Headers ["WWW-Authenticate"] = schemes + " realm=\"" + Realm + "\"";
+							ctx.Response.OutputStream.Close ();
+							continue;
+						}
+
+						return ctx;
+					}
+				}
+				Thread.Sleep(10);
+			}
+
+			throw new HttpListenerException (995, "The I/O operation has been aborted because of either a thread exit or an application request");
 		}
 
 		public void Start ()

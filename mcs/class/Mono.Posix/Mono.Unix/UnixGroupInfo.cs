@@ -43,7 +43,12 @@ namespace Mono.Unix {
 			Native.Group gr;
 			int r = Native.Syscall.getgrnam_r (group, this.group, out gr);
 			if (r != 0 || gr == null)
-				throw new ArgumentException (Locale.GetText ("invalid group name"), "group");
+			{
+				var groupEntity = Native.Syscall.getgrnam(group);
+				if (groupEntity == null)
+					throw new ArgumentException (Locale.GetText ("invalid group name"), "group");
+				this.group = groupEntity;
+			}
 		}
 
 		public UnixGroupInfo (long group)
