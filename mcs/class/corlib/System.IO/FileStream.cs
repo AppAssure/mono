@@ -148,7 +148,7 @@ namespace System.IO
 		}
 #endif
 
-		internal FileStream (string path, FileMode mode, FileAccess access, FileShare share, int bufferSize, FileOptions options, string msgPath, bool bFromProxy, bool useLongPath, bool checkHost)
+		internal FileStream (string path, FileMode mode, FileAccess access, FileShare share, int bufferSize, FileOptions options, string msgPath, bool bFromProxy, bool useLongPath = false, bool checkHost = false)
 			: this (path, mode, access, share, bufferSize, false, options)
 		{
 		}
@@ -293,6 +293,8 @@ namespace System.IO
 
 		private void Init (SafeFileHandle safeHandle, FileAccess access, bool ownsHandle, int bufferSize, bool isAsync, bool isZeroSize)
 		{
+			if (safeHandle.IsInvalid)
++				throw new ArgumentException ("Invalid safe handle.");
 			if (access < FileAccess.Read || access > FileAccess.ReadWrite)
 				throw new ArgumentOutOfRangeException ("access");
 
