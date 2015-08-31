@@ -294,7 +294,7 @@ namespace System.IO
 		private void Init (SafeFileHandle safeHandle, FileAccess access, bool ownsHandle, int bufferSize, bool isAsync, bool isZeroSize)
 		{
 			if (safeHandle.IsInvalid)
-+				throw new ArgumentException ("Invalid safe handle.");
+				throw new ArgumentException ("Invalid safe handle.");
 			if (access < FileAccess.Read || access > FileAccess.ReadWrite)
 				throw new ArgumentOutOfRangeException ("access");
 
