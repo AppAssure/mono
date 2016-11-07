@@ -331,10 +331,15 @@ namespace Mono.Net.Security.Private
 
 		public virtual IAsyncResult BeginAuthenticateAsClient (string targetHost, X509CertificateCollection clientCertificates, SslProtocols enabledSslProtocols, bool checkCertificateRevocation, AsyncCallback asyncCallback, object asyncState)
 		{
-			if (IsAuthenticated)
-				throw new InvalidOperationException ("This SslStream is already authenticated");
+			SslClientStream s = null;
+			if (IsAuthenticated) {
+			//	throw new InvalidOperationException ("This SslStream is already authenticated");
+				s = (SslClientStream)ssl_stream;
+			}
+			else {
+				s = new SslClientStream (InnerStream, targetHost, !LeaveInnerStreamOpen, GetMonoSslProtocol (enabledSslProtocols), clientCertificates);
+			}
 
-			SslClientStream s = new SslClientStream (InnerStream, targetHost, !LeaveInnerStreamOpen, GetMonoSslProtocol (enabledSslProtocols), clientCertificates);
 			s.CheckCertRevocationStatus = checkCertificateRevocation;
 
 			// Due to the Mono.Security internal, it cannot reuse
@@ -388,10 +393,15 @@ namespace Mono.Net.Security.Private
 
 		public virtual IAsyncResult BeginAuthenticateAsServer (X509Certificate serverCertificate, bool clientCertificateRequired, SslProtocols enabledSslProtocols, bool checkCertificateRevocation, AsyncCallback asyncCallback, object asyncState)
 		{
-			if (IsAuthenticated)
-				throw new InvalidOperationException ("This SslStream is already authenticated");
+			SslServerStream s = null;
+			if (IsAuthenticated) {
+			//	throw new InvalidOperationException ("This SslStream is already authenticated");
+				s = (SslServerStream)ssl_stream;
+			}
+			else {
+				s = new SslServerStream (InnerStream, serverCertificate, false, clientCertificateRequired, !LeaveInnerStreamOpen, GetMonoSslProtocol (enabledSslProtocols));
+			}
 
-			SslServerStream s = new SslServerStream (InnerStream, serverCertificate, false, clientCertificateRequired, !LeaveInnerStreamOpen, GetMonoSslProtocol (enabledSslProtocols));
 			s.CheckCertRevocationStatus = checkCertificateRevocation;
 			// Due to the Mono.Security internal, it cannot reuse
 			// the delegated argument, as Mono.Security creates 
