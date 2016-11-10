@@ -290,7 +290,7 @@ namespace System.Net {
 			if (disposed)
 				return;
 
-			Close (false);
+			Close (true);
 		}
 
 		public void Close (byte [] responseEntity, bool willBlock)
