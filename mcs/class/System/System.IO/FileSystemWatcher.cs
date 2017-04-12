@@ -112,37 +112,7 @@ namespace System.IO {
 				if (watcher != null)
 					return;
 
-				string managed = Environment.GetEnvironmentVariable ("MONO_MANAGED_WATCHER");
-				int mode = 0;
-				if (managed == null)
-					mode = InternalSupportsFSW ();
-				
-				bool ok = false;
-				switch (mode) {
-				case 1: // windows
-					ok = DefaultWatcher.GetInstance (out watcher);
-					//ok = WindowsWatcher.GetInstance (out watcher);
-					break;
-				case 2: // libfam
-					ok = FAMWatcher.GetInstance (out watcher, false);
-					break;
-				case 3: // kevent
-					ok = KeventWatcher.GetInstance (out watcher);
-					break;
-				case 4: // libgamin
-					ok = FAMWatcher.GetInstance (out watcher, true);
-					break;
-				case 5: // inotify
-					ok = InotifyWatcher.GetInstance (out watcher, true);
-					break;
-				}
-
-				if (mode == 0 || !ok) {
-					if (String.Compare (managed, "disabled", true) == 0)
-						NullFileWatcher.GetInstance (out watcher);
-					else
-						DefaultWatcher.GetInstance (out watcher);
-				}
+				NullFileWatcher.GetInstance(out watcher);
 
 				ShowWatcherInfo ();
 			}
