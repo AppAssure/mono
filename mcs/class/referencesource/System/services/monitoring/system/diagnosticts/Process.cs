@@ -1364,21 +1364,22 @@ namespace System.Diagnostics {
 #if MONO
                 //Call close on streams if the user never saw them.
                 //A stream in the undefined mode was never fetched by the user.
+                //A stream in the syncMode which was redirected should be closed too. Otherwise it will be never disposed.
                 //A stream in the async mode is wrapped on a AsyncStreamReader and we should dispose that instead.
                 //  no way for users to get a hand on a AsyncStreamReader.
                 var tmpIn = standardInput;
                 standardInput = null;
-                if (inputStreamReadMode == StreamReadMode.undefined && tmpIn != null)
+                if ((inputStreamReadMode == StreamReadMode.undefined || startInfo.RedirectStandardInput) && tmpIn != null)
                     tmpIn.Close ();
 
                 var tmpOut = standardOutput;
                 standardOutput = null;
-                if (outputStreamReadMode == StreamReadMode.undefined && tmpOut != null)
+                if ((outputStreamReadMode == StreamReadMode.undefined || startInfo.RedirectStandardOutput) && tmpOut != null)
                     tmpOut.Close ();
 
                 tmpOut = standardError;
                 standardError = null;
-                if (errorStreamReadMode == StreamReadMode.undefined && tmpOut != null)
+                if ((errorStreamReadMode == StreamReadMode.undefined || startInfo.RedirectStandardError) && tmpOut != null)
                     tmpOut.Close ();
 
                 var tmpAsync = output;
