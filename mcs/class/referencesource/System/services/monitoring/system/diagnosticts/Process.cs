@@ -250,11 +250,8 @@ namespace System.Diagnostics {
                     EnsureState(State.Associated);
                     SafeProcessHandle handle = null;
                     try {
-                        handle = GetProcessHandle(NativeMethods.PROCESS_QUERY_INFORMATION | NativeMethods.SYNCHRONIZE, false);
-                        if (handle.IsInvalid) {
-                            exited = true;
-                        }
-                        else {
+                        handle = GetProcessHandle(NativeMethods.PROCESS_QUERY_INFORMATION | NativeMethods.SYNCHRONIZE, ref exited);
+                        if (!exited) {
                             int exitCode;
                             
                             // Although this is the wrong way to check whether the process has exited,
@@ -1756,7 +1753,7 @@ namespace System.Diagnostics {
         /// <internalonly/>
         [ResourceExposure(ResourceScope.None)]
         [ResourceConsumption(ResourceScope.Machine, ResourceScope.Machine)]
-        SafeProcessHandle GetProcessHandle(int access, bool throwIfExited) {
+        SafeProcessHandle GetProcessHandle(int access, bool throwIfExited, ref bool hasExited) {
             Debug.WriteLineIf(processTracing.TraceVerbose, "GetProcessHandle(access = 0x" + access.ToString("X8", CultureInfo.InvariantCulture) + ", throwIfExited = " + throwIfExited + ")");
 #if DEBUG
             if (processTracing.TraceVerbose) {
@@ -1764,27 +1761,30 @@ namespace System.Diagnostics {
                 Debug.WriteLine("   called from " + calledFrom.GetFileName() + ", line " + calledFrom.GetFileLineNumber());
             }
 #endif
+            bool exited = true;
             if (haveProcessHandle) {
-                if (throwIfExited) {
-                    // Since haveProcessHandle is true, we know we have the process handle
-                    // open with at least SYNCHRONIZE access, so we can wait on it with 
-                    // zero timeout to see if the process has exited.
-                    ProcessWaitHandle waitHandle = null;
-                    try {
-                        waitHandle = new ProcessWaitHandle(m_processHandle);             
-                        if (waitHandle.WaitOne(0, false)) {
-                            if (haveProcessId)
-                                throw new InvalidOperationException(SR.GetString(SR.ProcessHasExited, processId.ToString(CultureInfo.CurrentCulture)));
-                            else
-                                throw new InvalidOperationException(SR.GetString(SR.ProcessHasExitedNoId));
-                        }
-                    }
-                    finally {
-                        if( waitHandle != null) {
-                            waitHandle.Close();
-                        }
-                    }            
+                // Since haveProcessHandle is true, we know we have the process handle
+                // open with at least SYNCHRONIZE access, so we can wait on it with
+                // zero timeout to see if the process has exited.
+                ProcessWaitHandle waitHandle = null;
+                try {
+                    waitHandle = new ProcessWaitHandle(m_processHandle);
+                    exited = waitHandle.WaitOne(0, false);
                 }
+                finally {
+                    if( waitHandle != null) {
+                        waitHandle.Close();
+                    }
+                }
+
+                if (exited && throwIfExited) {
+                    if (haveProcessId)
+                        throw new InvalidOperationException(SR.GetString(SR.ProcessHasExited, processId.ToString(CultureInfo.CurrentCulture)));
+                    else
+                        throw new InvalidOperationException(SR.GetString(SR.ProcessHasExitedNoId));
+                }
+
+                hasExited = exited || m_processHandle.IsInvalid;
                 return m_processHandle;
             }
             else {
@@ -1806,14 +1806,30 @@ namespace System.Diagnostics {
                     throw new Win32Exception();
                 }
 #endif // !FEATURE_PAL && !MONO
-                if (throwIfExited && (access & NativeMethods.PROCESS_QUERY_INFORMATION) != 0) {         
-                    if (NativeMethods.GetExitCodeProcess(handle, out exitCode) && exitCode != NativeMethods.STILL_ACTIVE) {
+                if ((access & NativeMethods.PROCESS_QUERY_INFORMATION) != 0) {
+                    exited = NativeMethods.GetExitCodeProcess(handle, out exitCode) && exitCode != NativeMethods.STILL_ACTIVE;
+                    if (exited && throwIfExited) {
                         throw new InvalidOperationException(SR.GetString(SR.ProcessHasExited, processId.ToString(CultureInfo.CurrentCulture)));
                     }
                 }
+
+                hasExited = handle.IsInvalid || exited;
                 return handle;
             }
+        }
 
+        SafeProcessHandle GetProcessHandle(int access, bool throwIfExited) {
+            bool hasExited = false;
+            return GetProcessHandle(access, throwIfExited, ref hasExited);
+        }
+
+        /// <devdoc>
+        ///     Gets a short-term handle to the process, with the given access.  If a handle exists,
+        ///     then it is reused. It doesn't throw an exception if the process has exited.
+        /// </devdoc>
+        /// <internalonly/>
+        SafeProcessHandle GetProcessHandle(int access, ref bool hasExited) {
+            return GetProcessHandle(access, false, ref hasExited);
         }
 
         /// <devdoc>
@@ -2552,14 +2568,11 @@ namespace System.Diagnostics {
         /// </devdoc>
         public bool WaitForExit(int milliseconds) {
             SafeProcessHandle handle = null;
-	     bool exited;
+            bool exited = false;
             ProcessWaitHandle processWaitHandle = null;
             try {
-                handle = GetProcessHandle(NativeMethods.SYNCHRONIZE, false);                
-                if (handle.IsInvalid) {
-                    exited = true;
-                }
-                else {
+                handle = GetProcessHandle(NativeMethods.SYNCHRONIZE, ref exited);
+                if (!exited) {
                     processWaitHandle = new ProcessWaitHandle(handle);
                     if( processWaitHandle.WaitOne(milliseconds, false)) {
                         exited = true;
