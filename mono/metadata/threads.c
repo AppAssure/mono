@@ -1540,9 +1540,9 @@ ves_icall_System_Threading_Thread_Join_internal(MonoThread *this_obj, int ms)
 	
 	mono_thread_set_state (cur_thread, ThreadState_WaitSleepJoin);
 
-	MONO_ENTER_GC_SAFE;
+	// MONO_ENTER_GC_SAFE;
 	ret=WaitForSingleObjectEx (handle, ms, TRUE);
-	MONO_EXIT_GC_SAFE;
+	// MONO_EXIT_GC_SAFE;
 
 	mono_thread_clr_state (cur_thread, ThreadState_WaitSleepJoin);
 	
@@ -1579,12 +1579,12 @@ mono_wait_uninterrupted (MonoInternalThread *thread, guint32 numhandles, gpointe
 
 	start = (ms == -1) ? 0 : mono_100ns_ticks ();
 	do {
-		MONO_ENTER_GC_SAFE;
+		// MONO_ENTER_GC_SAFE;
 		if (numhandles != 1)
 			ret = WaitForMultipleObjectsEx (numhandles, handles, waitall, wait, TRUE);
 		else
 			ret = WaitForSingleObjectEx (handles [0], ms, TRUE);
-		MONO_EXIT_GC_SAFE;
+		// MONO_EXIT_GC_SAFE;
 
 		if (ret != WAIT_IO_COMPLETION)
 			break;
@@ -1741,9 +1741,9 @@ ves_icall_System_Threading_WaitHandle_SignalAndWait_Internal (HANDLE toSignal, H
 
 	mono_thread_set_state (thread, ThreadState_WaitSleepJoin);
 	
-	MONO_ENTER_GC_SAFE;
+	// MONO_ENTER_GC_SAFE;
 	ret = SignalObjectAndWait (toSignal, toWait, ms, TRUE);
-	MONO_EXIT_GC_SAFE;
+	// MONO_EXIT_GC_SAFE;
 	
 	mono_thread_clr_state (thread, ThreadState_WaitSleepJoin);
 
@@ -2960,9 +2960,9 @@ wait_for_tids (struct wait_data *wait, guint32 timeout)
 	
 	THREAD_DEBUG (g_message("%s: %d threads to wait for in this batch", __func__, wait->num));
 
-	MONO_ENTER_GC_SAFE;
+	// MONO_ENTER_GC_SAFE;
 	ret=WaitForMultipleObjectsEx(wait->num, wait->handles, TRUE, timeout, TRUE);
-	MONO_EXIT_GC_SAFE;
+	// MONO_EXIT_GC_SAFE;
 
 	if(ret==WAIT_FAILED) {
 		/* See the comment in build_wait_tids() */
@@ -3023,9 +3023,9 @@ static void wait_for_tids_or_state_change (struct wait_data *wait, guint32 timeo
 		count++;
 	}
 
-	MONO_ENTER_GC_SAFE;
+	// MONO_ENTER_GC_SAFE;
 	ret=WaitForMultipleObjectsEx (count, wait->handles, FALSE, timeout, TRUE);
-	MONO_EXIT_GC_SAFE;
+	// MONO_EXIT_GC_SAFE;
 
 	if(ret==WAIT_FAILED) {
 		/* See the comment in build_wait_tids() */
@@ -4961,10 +4961,10 @@ mono_threads_join_threads (void)
 		joinable_threads_unlock ();
 		if (found) {
 			if (thread != pthread_self ()) {
-				MONO_ENTER_GC_SAFE;
+				// MONO_ENTER_GC_SAFE;
 				/* This shouldn't block */
 				mono_native_thread_join (thread);
-				MONO_EXIT_GC_SAFE;
+				// MONO_EXIT_GC_SAFE;
 			}
 		} else {
 			break;
@@ -4998,9 +4998,9 @@ mono_thread_join (gpointer tid)
 	if (!found)
 		return;
 	thread = (pthread_t)tid;
-	MONO_ENTER_GC_SAFE;
+	// MONO_ENTER_GC_SAFE;
 	mono_native_thread_join (thread);
-	MONO_EXIT_GC_SAFE;
+	// MONO_EXIT_GC_SAFE;
 #endif
 }
 
