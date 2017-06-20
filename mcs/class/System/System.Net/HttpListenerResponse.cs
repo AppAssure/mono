@@ -402,7 +402,7 @@ namespace System.Net {
 				headers.SetInternal ("Transfer-Encoding", "chunked");
 
 			int reuses = context.Connection.Reuses;
-			if (reuses >= 100) {
+			if (reuses >= 1000) {
 				force_close_chunked = true;
 				if (!conn_close) {
 					headers.SetInternal ("Connection", "close");

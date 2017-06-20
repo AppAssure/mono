@@ -109,6 +109,11 @@ namespace System.Net {
 			o_stream = null;
 			prefix = null;
 			chunked = false;
+			if (ms != null)
+			{
+				ms.Close();
+				ms = null;
+			}
 			ms = new MemoryStream ();
 			position = 0;
 			input_state = InputState.RequestLine;
@@ -174,6 +179,7 @@ namespace System.Net {
 			if (i_stream == null) {
 				byte [] buffer = ms.GetBuffer ();
 				int length = (int) ms.Length;
+				ms.Close();
 				ms = null;
 				if (chunked) {
 					this.chunked = true;
@@ -415,6 +421,7 @@ namespace System.Net {
 		{
 			if (context_bound) {
 				epl.UnbindContext (context);
+				context = null;
 				context_bound = false;
 			}
 		}
@@ -438,6 +445,31 @@ namespace System.Net {
 			RemoveConnection ();
 		}
 
+		~HttpConnection()
+		{
+			Close (true);
+
+			if (stream != null) {
+				stream.Close();
+				stream = null;
+			}
+
+			if (ssl_stream != null) {
+				ssl_stream.Dispose();
+				ssl_stream = null;
+			}
+
+			if (ms != null) {
+				ms.Close();
+				ms = null;
+			}
+
+			if (timer != null) {
+				timer.Dispose();
+				timer = null;
+			}
+		}
+
 		internal void Close (bool force_close)
 		{
 			if (sock != null) {
@@ -446,6 +478,11 @@ namespace System.Net {
 					st.Close ();
 
 				o_stream = null;
+
+				if (i_stream != null) {
+					i_stream.Close();
+					i_stream = null;
+				}
 			}
 
 			if (sock != null) {
