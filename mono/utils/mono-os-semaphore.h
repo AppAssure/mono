@@ -225,12 +225,12 @@ mono_os_sem_timedwait (MonoSemType *sem, guint32 timeout_ms, MonoSemFlags flags)
 
 	if (timeout_ms == 0) {
 		res = sem_trywait (sem);
-		if (G_UNLIKELY (res != 0 && errno != EINTR && errno != EAGAIN))
+		if (G_UNLIKELY (res != 0 && errno != EINTR && errno != EAGAIN && errno != ECHILD))
 			g_error ("%s: sem_trywait failed with \"%s\" (%d)", __func__, g_strerror (errno), errno);
 
 		if (res == 0)
 			return MONO_SEM_TIMEDWAIT_RET_SUCCESS;
-		else if (errno == EINTR)
+		else if (errno == EINTR || errno == ECHILD)
 			return MONO_SEM_TIMEDWAIT_RET_ALERTED;
 		else if (errno == EAGAIN)
 			return MONO_SEM_TIMEDWAIT_RET_TIMEDOUT;

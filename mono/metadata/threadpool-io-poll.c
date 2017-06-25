@@ -120,7 +120,7 @@ poll_mark_bad_fds (mono_pollfd *poll_fds, gint poll_fds_size)
 			ready++;
 			break;
 		case -1:
-			if (errno == EBADF)
+			if (errno == EBADF || errno == ECHILD)
 			{
 				poll_fds [i].revents |= MONO_POLLNVAL;
 				ready++;
@@ -170,6 +170,7 @@ poll_event_wait (void (*callback) (gint fd, gint events, gpointer user_data), gp
 			break;
 		}
 		case EBADF:
+		case ECHILD:
 		{
 			ready = poll_mark_bad_fds (poll_fds, poll_fds_size);
 			break;
