@@ -207,7 +207,7 @@ mono_os_sem_wait (MonoSemType *sem, MonoSemFlags flags)
 
 retry:
 	res = sem_wait (sem);
-	if (G_UNLIKELY (res != 0 && errno != EINTR))
+	if (G_UNLIKELY (res != 0 && errno != EINTR && errno != ECHILD))
 		g_error ("%s: sem_wait failed with \"%s\" (%d)", __func__, g_strerror (errno), errno);
 
 	if (res != 0 && errno == EINTR && !(flags & MONO_SEM_FLAGS_ALERTABLE))
@@ -230,9 +230,9 @@ mono_os_sem_timedwait (MonoSemType *sem, guint32 timeout_ms, MonoSemFlags flags)
 
 		if (res == 0)
 			return MONO_SEM_TIMEDWAIT_RET_SUCCESS;
-		else if (errno == EINTR || errno == ECHILD)
+		else if (errno == EINTR)
 			return MONO_SEM_TIMEDWAIT_RET_ALERTED;
-		else if (errno == EAGAIN)
+		else if (errno == EAGAIN || errno == ECHILD)
 			return MONO_SEM_TIMEDWAIT_RET_TIMEDOUT;
 		else
 			g_assert_not_reached ();
@@ -268,7 +268,7 @@ retry:
 		return MONO_SEM_TIMEDWAIT_RET_SUCCESS;
 	else if (errno == EINTR)
 		return MONO_SEM_TIMEDWAIT_RET_ALERTED;
-	else if (errno == ETIMEDOUT)
+	else if (errno == ETIMEDOUT || errno == ECHILD)
 		return MONO_SEM_TIMEDWAIT_RET_TIMEDOUT;
 	else
 		g_assert_not_reached ();
