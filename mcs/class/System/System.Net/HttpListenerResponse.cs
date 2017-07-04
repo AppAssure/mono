@@ -402,7 +402,7 @@ namespace System.Net {
 				headers.SetInternal ("Transfer-Encoding", "chunked");
 
 			int reuses = context.Connection.Reuses;
-			if (reuses >= 1000) {
+			if (reuses >= 500) {
 				force_close_chunked = true;
 				if (!conn_close) {
 					headers.SetInternal ("Connection", "close");
@@ -411,7 +411,7 @@ namespace System.Net {
 			}
 
 			if (!conn_close) {
-				headers.SetInternal ("Keep-Alive", String.Format ("timeout=15,max={0}", 100 - reuses));
+				headers.SetInternal ("Keep-Alive", String.Format ("timeout=15,max={0}", 500 - reuses));
 				if (context.Request.ProtocolVersion <= HttpVersion.Version10)
 					headers.SetInternal ("Connection", "keep-alive");
 			}
