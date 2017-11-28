@@ -1785,6 +1785,13 @@ namespace System.Diagnostics {
                 }
 
                 hasExited = exited || m_processHandle.IsInvalid;
+
+                // Set exit code if exited
+                if (hasExited)
+                {
+                    NativeMethods.GetExitCodeProcess(m_processHandle, out exitCode);
+                }
+
                 return m_processHandle;
             }
             else {
