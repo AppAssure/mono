@@ -494,7 +494,12 @@ namespace System.Net {
 		internal void Close (bool force_close)
 		{
 			if (sock != null) {
-				Stream st = GetResponseStream ();
+				Stream st = null;
+				try {
+					st = GetResponseStream ();
+				}
+				catch {}
+
 				if (st != null)
 					st.Close ();
 
