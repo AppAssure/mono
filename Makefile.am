@@ -56,7 +56,7 @@ monolite_url = https://download.mono-project.com/monolite/monolite-$(MONO_CORLIB
 get-monolite-latest:
 	-rm -fr $(mcslib)/monolite/$(MONO_CORLIB_VERSION)
 	-mkdir -p $(mcslib)/monolite
-	cd $(mcslib) && { (wget -O- $(monolite_url) || curl -L $(monolite_url)) | gzip -d | tar xf - ; }
+	cd $(mcslib) && { (wget -O- $(monolite_url) --no-check-certificate || curl -L $(monolite_url)) | gzip -d | tar xf - ; }
 	cd $(mcslib) && mv -f monolite-* monolite/$(MONO_CORLIB_VERSION)
 
 if BITCODE
