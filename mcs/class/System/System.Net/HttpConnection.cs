@@ -453,6 +453,24 @@ namespace System.Net {
 			RemoveConnection ();
 		}
 
+		void CloseSocketSafe ()
+		{
+			if (sock == null)
+				return;
+
+			Socket s = sock;
+			sock = null;
+			try {
+				if (s != null)
+					s.Shutdown (SocketShutdown.Both);
+					s.Disconnect (false);
+			} catch {
+			} finally {
+				if (s != null)
+					s.Close ();
+			}
+		}
+
 		~HttpConnection()
 		{
 			Close (true);
@@ -511,6 +529,13 @@ namespace System.Net {
 				}
 			}
 
+			if (context == null)
+			{
+				CloseSocketSafe ();
+				RemoveConnection ();
+				return;
+			}
+
 			if (sock != null) {
 				force_close |= !context.Request.KeepAlive;
 				if (!force_close)
@@ -543,17 +568,7 @@ namespace System.Net {
 					return;
 				}
 
-				Socket s = sock;
-				sock = null;
-				try {
-					if (s != null)
-						s.Shutdown (SocketShutdown.Both);
-						s.Disconnect (false);
-				} catch {
-				} finally {
-					if (s != null)
-						s.Close ();
-				}
+				CloseSocketSafe ();
 				Unbind ();
 				RemoveConnection ();
 				return;
