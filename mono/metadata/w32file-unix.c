@@ -3473,8 +3473,6 @@ mono_w32file_find_first (const gunichar2 *pattern, WIN32_FIND_DATA *find_data)
 	if (handle == INVALID_HANDLE_VALUE) {
 		g_warning ("%s: error creating find handle", __func__);
 		g_free (dir_part);
-		g_free (entry_part);
-		g_free (utf8_pattern);
 		mono_w32error_set_last (ERROR_GEN_FAILURE);
 		
 		return(INVALID_HANDLE_VALUE);
