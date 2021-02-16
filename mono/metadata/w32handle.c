@@ -786,7 +786,15 @@ static const gchar*
 mono_w32handle_ops_typename (MonoW32HandleType type)
 {
 	g_assert (handle_ops [type]);
+	if (handle_ops [type] == NULL) {
+		return NULL;
+	}
+
 	g_assert (handle_ops [type]->typename);
+	if (handle_ops [type]->typename == NULL) {
+		return NULL;
+	}
+
 	return handle_ops [type]->typename ();
 }
 
@@ -794,7 +802,15 @@ static gsize
 mono_w32handle_ops_typesize (MonoW32HandleType type)
 {
 	g_assert (handle_ops [type]);
+	if (handle_ops [type] == NULL) {
+		return 0;
+	}
+
 	g_assert (handle_ops [type]->typesize);
+	if (handle_ops [type]->typesize == NULL) {
+		return 0;
+	}
+
 	return handle_ops [type]->typesize ();
 }
 
